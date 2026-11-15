@@ -152,6 +152,7 @@ Same idea, same section shape (`title`, `filters`, `limit`, under `mrSections` i
 - Child pipelines are not followed: a pipeline that failed only in a downstream pipeline shows as failed with no error line.
 - Only the first 4 MiB of a job log is read.
 - "Returned to you" and "Review requested" need the reviewer state API, which older self-managed GitLab versions may not return; reviewers without a state count as unreviewed.
+- Review-state filters are applied after listing, so a section reads at most 5 pages of merge requests per host; matches beyond that are not shown.
 - The error-line finder is a heuristic. If it picks the wrong line for your tooling, please open an issue with the log excerpt.
 
 ## Roadmap

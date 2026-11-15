@@ -2,9 +2,11 @@ package dash
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -256,5 +258,81 @@ func TestDetailsOnlyForRowsKeptAfterMerge(t *testing.T) {
 	st.Apply(listed{section: 0, rows: []Row{newer}})
 	if jobs := st.Apply(listed{section: 0, rows: []Row{older}}); len(jobs) != 0 {
 		t.Errorf("queued %d detail jobs for a row trimmed by the section limit", len(jobs))
+	}
+}
+
+// pagedHost serves ds and counts /merge_requests requests. When stuck is
+// set, every list request returns the first page, as if each page request
+// raced an update that shifted the list.
+func pagedHost(t *testing.T, ds fakegitlab.Dataset, stuck bool) (*Source, *atomic.Int64) {
+	t.Helper()
+	fake := fakegitlab.New(ds, time.Now(), 0)
+	var lists atomic.Int64
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v4/merge_requests" {
+			lists.Add(1)
+			if stuck {
+				q := r.URL.Query()
+				q.Set("page", "1")
+				r.URL.RawQuery = q.Encode()
+			}
+		}
+		fake.ServeHTTP(w, r)
+	}))
+	t.Cleanup(ts.Close)
+	src, err := Connect(t.Context(), config.Host{Name: ds.Host, APIHost: strings.TrimPrefix(ts.URL, "http://"), APIProtocol: "http", Token: ds.Token})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return src, &lists
+}
+
+func reviewQueue(approved, waiting int) fakegitlab.Dataset {
+	ds := fakegitlab.Dataset{Host: "gitlab.com", Token: "t", User: "alex"}
+	for i := 1; i <= approved+waiting; i++ {
+		state := "approved"
+		if i > approved {
+			state = "unreviewed"
+		}
+		ds.MRs = append(ds.MRs, fakegitlab.MR{
+			ProjectID: 1, Project: "acme/shop", IID: i, Title: state, Author: "sam",
+			Reviewers: []fakegitlab.Reviewer{{Username: "alex", State: state}},
+			Updated:   ago(time.Duration(i) * time.Hour),
+		})
+	}
+	return ds
+}
+
+func TestReviewStatePagingStopsAtCap(t *testing.T) {
+	src, lists := pagedHost(t, reviewQueue(20, 1), false)
+	f, _ := ParseFilter("reviewer:@me my-review-state:unreviewed")
+	rows, err := src.Section(t.Context(), f, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 0 {
+		t.Errorf("rows = %v, want none within the first 5 pages", rows)
+	}
+	if n := lists.Load(); n != 5 {
+		t.Errorf("list requests = %d, want 5", n)
+	}
+}
+
+func TestPagingSkipsRepeatedRows(t *testing.T) {
+	ds := reviewQueue(0, 6)
+	for i := 1; i < len(ds.MRs); i++ {
+		ds.MRs[i].Reviewers[0].State = "approved"
+	}
+	src, lists := pagedHost(t, ds, true)
+	f, _ := ParseFilter("reviewer:@me my-review-state:unreviewed")
+	rows, err := src.Section(t.Context(), f, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || rows[0].IID != 1 {
+		t.Errorf("rows = %v, want MR 1 once", rows)
+	}
+	if n := lists.Load(); n != 5 {
+		t.Errorf("list requests = %d, want 5", n)
 	}
 }

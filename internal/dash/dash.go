@@ -75,13 +75,17 @@ func Connect(ctx context.Context, h config.Host) (*Source, error) {
 	return &Source{Host: h, User: u.Username, client: c}, nil
 }
 
+// maxPages caps how many list pages one section reads per host.
+const maxPages = 5
+
 // Section lists the merge requests on this host that match f. Review-state
-// filters run on the client, so pages are read until limit rows are kept or
-// the pages run out.
+// filters run on the client, so pages are read until limit rows are kept,
+// the pages run out or maxPages pages were read.
 func (s *Source) Section(ctx context.Context, f Filter, limit int) ([]Row, error) {
 	q := f.Query(s.User, limit)
 	var rows []Row
-	for page := 1; page != 0 && len(rows) < limit; {
+	seen := map[Key]bool{}
+	for page, read := 1, 0; page != 0 && read < maxPages && len(rows) < limit; read++ {
 		q.Set("page", strconv.Itoa(page))
 		mrs, next, err := s.client.ListMergeRequests(ctx, q)
 		if err != nil {
@@ -93,9 +97,14 @@ func (s *Source) Section(ctx context.Context, f Filter, limit int) ([]Row, error
 			}
 		}
 		for _, mr := range mrs {
+			k := Key{Host: s.Host.Name, ProjectID: mr.ProjectID, IID: mr.IID}
+			if seen[k] {
+				continue
+			}
+			seen[k] = true
 			project, _, _ := strings.Cut(mr.References.Full, "!")
 			rows = append(rows, Row{
-				Key:       Key{Host: s.Host.Name, ProjectID: mr.ProjectID, IID: mr.IID},
+				Key:       k,
 				Project:   project,
 				Title:     mr.Title,
 				Author:    mr.Author.Username,
