@@ -47,9 +47,9 @@ func TestResolveHostsFromGlab(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []Host{
-		{Name: "gitlab.example.dev", APIHost: "gitlab.example.dev", APIProtocol: "https", Token: "keyring-dev", TokenSource: "glab"},
-		{Name: "gitlab.com", APIHost: "gitlab.com", APIProtocol: "https", Token: "env-com", TokenSource: "env"},
-		{Name: "localhost.test", APIHost: "127.0.0.1:8081", APIProtocol: "http"},
+		{Name: "gitlab.example.dev", APIHost: "gitlab.example.dev", APIProtocol: "https", Token: "keyring-dev", TokenSource: "glab", FromGlab: true},
+		{Name: "gitlab.com", APIHost: "gitlab.com", APIProtocol: "https", Token: "env-com", TokenSource: "env", FromGlab: true},
+		{Name: "localhost.test", APIHost: "127.0.0.1:8081", APIProtocol: "http", FromGlab: true},
 	}
 	if !reflect.DeepEqual(hosts, want) {
 		t.Errorf("hosts =\n%+v\nwant\n%+v", hosts, want)
@@ -105,6 +105,13 @@ func TestResolveHostsNone(t *testing.T) {
 	_, err := ResolveHosts(File{}, env)
 	if err == nil || !strings.Contains(err.Error(), "glab auth login") {
 		t.Fatalf("err = %v, want a hint naming glab auth login", err)
+	}
+}
+
+func TestResolveHostsGlabWithoutAnyToken(t *testing.T) {
+	_, err := ResolveHosts(File{}, testEnv(t, nil, nil))
+	if err == nil || !strings.Contains(err.Error(), "glab auth login --hostname gitlab.example.dev") {
+		t.Fatalf("err = %v, want a hint naming the first glab host", err)
 	}
 }
 

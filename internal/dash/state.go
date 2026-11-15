@@ -29,6 +29,8 @@ type HostState struct {
 	Source *Source
 	Err    error
 	Done   bool
+	// Skipped is set for glab-only hosts without a token.
+	Skipped bool
 }
 
 // SectionState holds one section's rows merged across hosts.
@@ -74,6 +76,13 @@ func (st *State) Start() []Job {
 	var jobs []Job
 	for i := range st.Hosts {
 		h := st.Hosts[i].Host
+		if h.FromGlab && h.Token == "" {
+			st.Hosts[i].Done, st.Hosts[i].Skipped = true, true
+			for s := range st.Sections {
+				st.Sections[s].Loading--
+			}
+			continue
+		}
 		jobs = append(jobs, func(ctx context.Context) Event {
 			src, err := Connect(ctx, h)
 			return connected{i, src, err}

@@ -135,7 +135,8 @@ func TestBadTokenKeepsOtherHosts(t *testing.T) {
 	com, dev := startHost(t, comDataset(), now), startHost(t, devDataset(), now)
 	dev.host.Token = "wrong"
 	noToken := config.Host{Name: "git.internal.test", APIHost: "127.0.0.1:1", APIProtocol: "http"}
-	st, err := NewState([]config.Host{com.host, dev.host, noToken}, config.DefaultSections[:1])
+	unusedGlab := config.Host{Name: "gitlab.unused.test", APIHost: "127.0.0.1:1", APIProtocol: "http", FromGlab: true}
+	st, err := NewState([]config.Host{com.host, dev.host, noToken, unusedGlab}, config.DefaultSections[:1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,6 +148,12 @@ func TestBadTokenKeepsOtherHosts(t *testing.T) {
 	}
 	if e := st.Hosts[2].Err; e == nil || !strings.Contains(e.Error(), "no token") || !strings.Contains(e.Error(), "glab auth login --hostname git.internal.test") {
 		t.Errorf("no-token err = %v", e)
+	}
+	if h := st.Hosts[3]; h.Err != nil || !h.Skipped {
+		t.Errorf("glab host without token: err=%v skipped=%v, want quietly skipped", h.Err, h.Skipped)
+	}
+	if st.Busy() != 0 || st.Sections[0].Loading != 0 {
+		t.Errorf("busy=%d loading=%d, want 0", st.Busy(), st.Sections[0].Loading)
 	}
 	if n := len(st.Sections[0].Rows); n != 1 {
 		t.Errorf("rows = %d, want 1 from gitlab.com", n)

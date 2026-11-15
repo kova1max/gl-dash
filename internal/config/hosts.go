@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,6 +23,9 @@ type Host struct {
 	APIProtocol string // https or http
 	Token       string
 	TokenSource string // env, config or glab; empty when no token was found
+	// FromGlab marks a host listed only in glab's config. Without a token it
+	// is skipped quietly: glab writes a gitlab.com entry even when unused.
+	FromGlab bool
 }
 
 // Env abstracts the process environment and the glab shell-out for tests.
@@ -67,13 +71,16 @@ func ResolveHosts(f File, env Env) ([]Host, error) {
 		}
 	} else {
 		for _, g := range glabHosts {
-			h := Host{Name: g.Name, APIHost: first(g.APIHost, g.Name), APIProtocol: first(g.APIProtocol, "https")}
+			h := Host{Name: g.Name, APIHost: first(g.APIHost, g.Name), APIProtocol: first(g.APIProtocol, "https"), FromGlab: true}
 			h.Token, h.TokenSource = resolveToken(g.Name, "", env)
 			hosts = append(hosts, h)
 		}
 	}
 	if len(hosts) == 0 {
 		return nil, errors.New("no GitLab hosts configured: run `glab auth login`, or add hosts to " + DefaultPath())
+	}
+	if len(f.Hosts) == 0 && !slices.ContainsFunc(hosts, func(h Host) bool { return h.Token != "" }) {
+		return nil, fmt.Errorf("no token for any host in glab's config (%s); %s", hosts[0].Name, TokenHint(hosts[0].Name))
 	}
 	return hosts, nil
 }

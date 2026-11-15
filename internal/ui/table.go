@@ -261,9 +261,17 @@ func authLine(st *dash.State) string {
 		}
 		bySource[src] = append(bySource[src], h.Host.Name)
 	}
-	var parts []string
+	var parts, skipped []string
 	for _, src := range order {
 		parts = append(parts, fmt.Sprintf("%s (%s)", src, strings.Join(bySource[src], ", ")))
+	}
+	for _, h := range st.Hosts {
+		if h.Skipped {
+			skipped = append(skipped, h.Host.Name)
+		}
+	}
+	if len(skipped) > 0 {
+		parts = append(parts, "no token: "+strings.Join(skipped, ", "))
 	}
 	if len(parts) == 0 {
 		return "auth: no working token"
