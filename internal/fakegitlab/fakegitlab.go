@@ -197,7 +197,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case p == "/api/v4/user":
 		writeJSON(w, s.user(s.ds.User))
 	case p == "/api/v4/merge_requests":
-		writeJSON(w, s.list(r))
+		s.list(w, r)
 	case mrRe.MatchString(p):
 		m := mrRe.FindStringSubmatch(p)
 		mr := s.find(atoi(m[1]), atoi(m[2]))
@@ -232,7 +232,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) list(r *http.Request) []map[string]any {
+func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	me := s.ds.User
 	var out []*MR
@@ -277,14 +277,20 @@ func (s *Server) list(r *http.Request) []map[string]any {
 		out = append(out, mr)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Updated < out[j].Updated })
-	if n, err := strconv.Atoi(q.Get("per_page")); err == nil && n < len(out) {
-		out = out[:n]
+	per := 20
+	if n, err := strconv.Atoi(q.Get("per_page")); err == nil && n > 0 {
+		per = n
+	}
+	page := max(atoi(q.Get("page")), 1)
+	lo, hi := min((page-1)*per, len(out)), min(page*per, len(out))
+	if hi < len(out) {
+		w.Header().Set("X-Next-Page", strconv.Itoa(page+1))
 	}
 	res := []map[string]any{}
-	for _, mr := range out {
+	for _, mr := range out[lo:hi] {
 		res = append(res, s.mrJSON(mr, false))
 	}
-	return res
+	writeJSON(w, res)
 }
 
 func (s *Server) mrJSON(mr *MR, single bool) map[string]any {

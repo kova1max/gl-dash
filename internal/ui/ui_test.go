@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -219,6 +220,38 @@ func TestPrint(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("print missing %q:\n%s", want, out)
 		}
+	}
+}
+
+func TestBlockerJobListErrorShown(t *testing.T) {
+	hosts := demoHosts(t)[:1]
+	ds, err := fakegitlab.Load("../../demo/data/gitlab.com.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fake := fakegitlab.New(ds, now, 0)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/jobs") {
+			http.Error(w, "boom", http.StatusInternalServerError)
+			return
+		}
+		fake.ServeHTTP(w, r)
+	}))
+	t.Cleanup(ts.Close)
+	hosts[0].APIHost = strings.TrimPrefix(ts.URL, "http://")
+	st, err := dash.NewState(hosts, sections(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dash.RunAll(t.Context(), st)
+	var b bytes.Buffer
+	Print(&b, st, now, 200)
+	out := b.String()
+	if !strings.Contains(out, "✗ pipeline failed · could not list jobs: GET /projects/") || !strings.Contains(out, "500 Internal Server Error") {
+		t.Errorf("print missing job list error:\n%s", out)
+	}
+	if strings.Contains(out, "no failed job in this pipeline") {
+		t.Errorf("job list error reported as no failed job:\n%s", out)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -74,61 +75,78 @@ func Connect(ctx context.Context, h config.Host) (*Source, error) {
 	return &Source{Host: h, User: u.Username, client: c}, nil
 }
 
-// Section lists the merge requests on this host that match f.
+// Section lists the merge requests on this host that match f. Review-state
+// filters run on the client, so pages are read until limit rows are kept or
+// the pages run out.
 func (s *Source) Section(ctx context.Context, f Filter, limit int) ([]Row, error) {
-	mrs, err := s.client.ListMergeRequests(ctx, f.Query(s.User, limit))
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", s.Host.Name, err)
-	}
-	keep := make([]bool, len(mrs))
-	if f.needsReviewers() {
-		errs := make([]error, len(mrs))
-		var wg sync.WaitGroup
-		for i, mr := range mrs {
-			wg.Go(func() {
-				rs, err := s.client.Reviewers(ctx, mr.ProjectID, mr.IID)
-				if err != nil {
-					errs[i] = err
-					return
-				}
-				var revs []reviewer
-				for _, r := range rs {
-					st := r.State
-					if st == "" {
-						st = "unreviewed"
-					}
-					revs = append(revs, reviewer{r.User.Username, st})
-				}
-				keep[i] = f.keep(s.User, revs)
-			})
-		}
-		wg.Wait()
-		if err := errors.Join(errs...); err != nil {
+	q := f.Query(s.User, limit)
+	var rows []Row
+	for page := 1; page != 0 && len(rows) < limit; {
+		q.Set("page", strconv.Itoa(page))
+		mrs, next, err := s.client.ListMergeRequests(ctx, q)
+		if err != nil {
 			return nil, fmt.Errorf("%s: %w", s.Host.Name, err)
 		}
-	} else {
-		for i := range keep {
-			keep[i] = true
+		if f.needsReviewers() {
+			if mrs, err = s.reviewed(ctx, f, mrs); err != nil {
+				return nil, fmt.Errorf("%s: %w", s.Host.Name, err)
+			}
 		}
+		for _, mr := range mrs {
+			project, _, _ := strings.Cut(mr.References.Full, "!")
+			rows = append(rows, Row{
+				Key:       Key{Host: s.Host.Name, ProjectID: mr.ProjectID, IID: mr.IID},
+				Project:   project,
+				Title:     mr.Title,
+				Author:    mr.Author.Username,
+				WebURL:    mr.WebURL,
+				Draft:     mr.Draft,
+				Conflicts: mr.HasConflicts,
+				Updated:   mr.UpdatedAt,
+			})
+		}
+		page = next
 	}
-	var rows []Row
-	for i, mr := range mrs {
-		if !keep[i] {
-			continue
-		}
-		project, _, _ := strings.Cut(mr.References.Full, "!")
-		rows = append(rows, Row{
-			Key:       Key{Host: s.Host.Name, ProjectID: mr.ProjectID, IID: mr.IID},
-			Project:   project,
-			Title:     mr.Title,
-			Author:    mr.Author.Username,
-			WebURL:    mr.WebURL,
-			Draft:     mr.Draft,
-			Conflicts: mr.HasConflicts,
-			Updated:   mr.UpdatedAt,
-		})
+	if len(rows) > limit {
+		rows = rows[:limit]
 	}
 	return rows, nil
+}
+
+// reviewed keeps the merge requests whose reviewer states match f.
+func (s *Source) reviewed(ctx context.Context, f Filter, mrs []gitlab.MergeRequest) ([]gitlab.MergeRequest, error) {
+	keep := make([]bool, len(mrs))
+	errs := make([]error, len(mrs))
+	var wg sync.WaitGroup
+	for i, mr := range mrs {
+		wg.Go(func() {
+			rs, err := s.client.Reviewers(ctx, mr.ProjectID, mr.IID)
+			if err != nil {
+				errs[i] = err
+				return
+			}
+			var revs []reviewer
+			for _, r := range rs {
+				st := r.State
+				if st == "" {
+					st = "unreviewed"
+				}
+				revs = append(revs, reviewer{r.User.Username, st})
+			}
+			keep[i] = f.keep(s.User, revs)
+		})
+	}
+	wg.Wait()
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+	var out []gitlab.MergeRequest
+	for i, mr := range mrs {
+		if keep[i] {
+			out = append(out, mr)
+		}
+	}
+	return out, nil
 }
 
 // Detail fetches pipeline, approval and thread state for one row.

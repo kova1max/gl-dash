@@ -163,10 +163,12 @@ func blockerText(v rowView) string {
 	switch {
 	case b == nil:
 		return "pipeline failed · reading job log…"
-	case b.Job == "":
-		return "pipeline failed · no failed job in this pipeline (child pipelines are not followed yet)"
+	case v.blockerErr != nil && b.Job == "":
+		return "pipeline failed · could not list jobs: " + v.blockerErr.Error()
 	case v.blockerErr != nil:
 		return b.Job + " · could not read job log: " + v.blockerErr.Error()
+	case b.Job == "":
+		return "pipeline failed · no failed job in this pipeline (child pipelines are not followed yet)"
 	case b.Line == "":
 		return b.Job + " failed"
 	default:

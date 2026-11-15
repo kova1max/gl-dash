@@ -114,11 +114,12 @@ func (c *Client) CurrentUser(ctx context.Context) (User, error) {
 }
 
 // ListMergeRequests calls GET /merge_requests with the given filters.
-// It returns a single page; callers set per_page.
-func (c *Client) ListMergeRequests(ctx context.Context, q url.Values) ([]MergeRequest, error) {
+// It returns one page and the next page number, or 0; callers set per_page
+// and page.
+func (c *Client) ListMergeRequests(ctx context.Context, q url.Values) ([]MergeRequest, int, error) {
 	var mrs []MergeRequest
-	_, err := c.getJSON(ctx, "/merge_requests", q, &mrs)
-	return mrs, err
+	next, err := c.getJSON(ctx, "/merge_requests", q, &mrs)
+	return mrs, next, err
 }
 
 // MergeRequest returns one merge request with its head pipeline.

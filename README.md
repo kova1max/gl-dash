@@ -145,12 +145,6 @@ Review states: `unreviewed`, `review_started`, `reviewed`, `requested_changes`, 
 
 Same idea, same section shape (`title`, `filters`, `limit`, under `mrSections` instead of `prSections`) and gh-dash's default navigation keys (`j`/`k`, `h`/`l`, `/`, `o`, `r`, `?`, `q`). Filters use the keys above rather than GitHub search syntax. A config importer is planned.
 
-## Why I built this
-
-> **Draft:** placeholder text for the maintainer to rewrite in their own words before launch.
-
-I work across gitlab.com and a self-managed GitLab every day and kept two browser tabs open to find what was waiting on me. When a pipeline was red I clicked through three pages to learn it was one failing test. I wanted one screen, from any directory, that answers both.
-
 ## Limits
 
 - Read-only. It cannot approve, comment or merge yet.

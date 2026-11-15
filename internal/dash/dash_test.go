@@ -212,3 +212,49 @@ func TestKeep(t *testing.T) {
 		}
 	}
 }
+
+func TestReviewStateFilterReadsPastFirstPage(t *testing.T) {
+	ds := fakegitlab.Dataset{Host: "gitlab.com", Token: "t", User: "alex"}
+	for i := 1; i <= 5; i++ {
+		ds.MRs = append(ds.MRs, fakegitlab.MR{
+			ProjectID: 1, Project: "acme/shop", IID: i, Title: "approved " + strconv.Itoa(i), Author: "sam",
+			Reviewers: []fakegitlab.Reviewer{{Username: "alex", State: "approved"}},
+			Updated:   ago(time.Duration(i) * time.Hour),
+		})
+	}
+	for i := 6; i <= 8; i++ {
+		ds.MRs = append(ds.MRs, fakegitlab.MR{
+			ProjectID: 1, Project: "acme/shop", IID: i, Title: "waiting " + strconv.Itoa(i), Author: "sam",
+			Reviewers: []fakegitlab.Reviewer{{Username: "alex", State: "unreviewed"}},
+			Updated:   ago(time.Duration(i) * time.Hour),
+		})
+	}
+	h := startHost(t, ds, time.Now())
+	src, err := Connect(t.Context(), h.host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, _ := ParseFilter("reviewer:@me my-review-state:unreviewed")
+	rows, err := src.Section(t.Context(), f, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []int
+	for _, r := range rows {
+		got = append(got, r.IID)
+	}
+	if len(got) != 2 || got[0] != 6 || got[1] != 7 {
+		t.Errorf("rows = %v, want [6 7]", got)
+	}
+}
+
+func TestDetailsOnlyForRowsKeptAfterMerge(t *testing.T) {
+	st, _ := NewState(nil, []config.Section{{Title: "All", Filters: "state:opened", Limit: 1}})
+	now := time.Now()
+	newer := Row{Key: Key{Host: "a", ProjectID: 1, IID: 1}, Updated: now}
+	older := Row{Key: Key{Host: "b", ProjectID: 1, IID: 2}, Updated: now.Add(-time.Hour)}
+	st.Apply(listed{section: 0, rows: []Row{newer}})
+	if jobs := st.Apply(listed{section: 0, rows: []Row{older}}); len(jobs) != 0 {
+		t.Errorf("queued %d detail jobs for a row trimmed by the section limit", len(jobs))
+	}
+}

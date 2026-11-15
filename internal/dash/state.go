@@ -151,9 +151,13 @@ func (e listed) apply(st *State) []Job {
 	if len(sec.Rows) > sec.Limit {
 		sec.Rows = sec.Rows[:sec.Limit]
 	}
+	shown := map[Key]bool{}
+	for _, r := range sec.Rows {
+		shown[r.Key] = true
+	}
 	var jobs []Job
 	for _, r := range e.rows {
-		if st.requested[r.Key] {
+		if !shown[r.Key] || st.requested[r.Key] {
 			continue
 		}
 		st.requested[r.Key] = true
