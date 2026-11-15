@@ -1,0 +1,4 @@
+$ go vet ./...
+# example.com/shop/orders
+./orders.go:31:2: unreachable code
+ERROR: Job failed: exit code 1
