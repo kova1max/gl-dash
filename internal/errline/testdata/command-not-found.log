@@ -1,0 +1,17 @@
+[0KRunning with gitlab-runner 17.5.0 (abc123)
+[0K  on shared-runner-1 xyz, system ID: s_1
+section_start:1731600000:prepare_executor[0K[0K[36;1mPreparing the "docker" executor[0;m
+[0KUsing docker image sha256:0123 for golang:1.23 ...
+section_end:1731600000:prepare_executor[0K
+section_start:1731600000:get_sources[0K[0K[36;1mGetting source from Git repository[0;m
+Fetching changes with git depth set to 20...
+Checking out 1a2b3c4d as detached HEAD (ref is feature/orders)...
+section_end:1731600000:get_sources[0K
+section_start:1731600000:step_script[0K[0K[36;1mExecuting "step_script" stage of the job script[0;m
+[32;1m$ make test[0;m
+/bin/sh: eval: line 140: make: not found
+section_end:1731600000:step_script[0K
+section_start:1731600000:cleanup_file_variables[0K[0K[36;1mCleaning up project directory and file based variables[0;m
+section_end:1731600000:cleanup_file_variables[0K
+[31;1mERROR: Job failed: exit code 127
+[0;m

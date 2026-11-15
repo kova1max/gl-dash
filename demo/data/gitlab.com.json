@@ -1,0 +1,65 @@
+{
+  "host": "gitlab.com",
+  "token": "demo-token",
+  "user": "alex",
+  "mrs": [
+    {
+      "project_id": 101, "project": "acme/shop-api", "iid": 214,
+      "title": "Add idempotency keys to order creation", "author": "sam",
+      "reviewers": [{"username": "alex", "state": "unreviewed"}],
+      "created": "2d", "updated": "25m",
+      "approvals_required": 2, "approved_by": ["kim"], "unresolved_threads": 2, "resolved_threads": 3,
+      "pipeline": {"id": 90121, "status": "failed", "jobs": [
+        {"id": 7001, "name": "lint", "stage": "lint", "status": "success"},
+        {"id": 7002, "name": "test:unit", "stage": "test", "status": "failed", "trace_file": "traces/go-test.log"}
+      ]}
+    },
+    {
+      "project_id": 102, "project": "acme/web", "iid": 88,
+      "title": "Checkout: show delivery estimate", "author": "kim",
+      "reviewers": [{"username": "alex", "state": "unreviewed"}, {"username": "sam", "state": "approved"}],
+      "created": "6h", "updated": "1h",
+      "approvals_required": 1, "approved_by": ["sam"], "unresolved_threads": 0,
+      "pipeline": {"id": 90130, "status": "success"}
+    },
+    {
+      "project_id": 101, "project": "acme/shop-api", "iid": 209,
+      "title": "Paginate the invoices endpoint", "author": "priya",
+      "reviewers": [{"username": "alex", "state": "review_started"}],
+      "created": "4d", "updated": "3h",
+      "approvals_required": 2, "approved_by": [], "unresolved_threads": 1,
+      "pipeline": {"id": 90098, "status": "running"}
+    },
+    {
+      "project_id": 103, "project": "tools/release-cli", "iid": 31,
+      "title": "Sign release artifacts with cosign", "author": "jo",
+      "reviewers": [{"username": "alex", "state": "unreviewed"}],
+      "created": "9d", "updated": "1d",
+      "approvals_required": 1, "approved_by": [], "unresolved_threads": 0,
+      "pipeline": {"id": 89950, "status": "success"}
+    },
+    {
+      "project_id": 102, "project": "acme/web", "iid": 85,
+      "title": "Bump eslint to v9", "author": "sam",
+      "reviewers": [{"username": "alex", "state": "approved"}],
+      "created": "3d", "updated": "2d",
+      "approvals_required": 1, "approved_by": ["alex"],
+      "pipeline": {"id": 89990, "status": "success"}
+    },
+    {
+      "project_id": 102, "project": "acme/web", "iid": 90,
+      "title": "Dark mode for the account pages", "author": "alex",
+      "reviewers": [{"username": "kim", "state": "requested_changes"}],
+      "created": "3d", "updated": "40m", "has_conflicts": true,
+      "approvals_required": 1, "approved_by": [], "unresolved_threads": 4, "resolved_threads": 1,
+      "pipeline": {"id": 90127, "status": "success"}
+    },
+    {
+      "project_id": 101, "project": "acme/shop-api", "iid": 215,
+      "title": "Draft: Move pricing rules to a table", "author": "alex", "draft": true,
+      "reviewers": [],
+      "created": "5h", "updated": "2h",
+      "pipeline": {"id": 90125, "status": "pending"}
+    }
+  ]
+}

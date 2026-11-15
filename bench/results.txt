@@ -1,0 +1,51 @@
+# gl-dash benchmark (go run ./bench)
+date: 2026-11-15
+machine: darwin/arm64, 10 CPUs, go1.26.10
+dataset: 2 hosts, 12 seeded merge requests, 3 with a failed pipeline (demo/data)
+simulated latency per API request: 200ms
+
+gl-dash --print, from process start until every row and error line is printed:
+  run 1: 1.42s
+  run 2: 1.62s
+  run 3: 1.63s
+  run 4: 1.63s
+  run 5: 1.64s
+  median: 1.63s
+  API requests per run: 58 (all GET)
+  serial lower bound for the same requests: 11.6s (58 x 200ms)
+  distinct failed jobs with an error line shown: 3 of 3
+
+browser, counted page loads for the same answer:
+  2 merge request homepages (one per host)
+  + 3 failed pipelines x 3 (merge request, pipeline, failed job log) = 9
+  total: 11 page loads
+
+last gl-dash --print output:
+
+auth: config (gitlab.com, gitlab.example.dev)
+
+Review requested (7)
+  PROJECT           TITLE                                   AUTHOR CI  APPR THR CONFL  UPD HOST
+  acme/shop-api     Add idempotency keys to order creation  sam    ✗    1/2   2        25m gitlab.com
+    ✗ test:unit · expected 200, got 500 (orders_test.go:88)
+  platform/billing  Retry failed webhook deliveries         morgan ✗    1/2   1        50m gitlab.example.dev
+    ✗ lint · declared and not used: ctx (handler.go:42)
+  acme/web          Checkout: show delivery estimate        kim    ✓    1/1   0         1h gitlab.com
+  acme/shop-api     Paginate the invoices endpoint          priya  ●    0/2   1         3h gitlab.com
+  platform/infra    Terraform: split the staging VPC module casey  ✓    0/1   0         5h gitlab.example.dev
+  tools/release-cli Sign release artifacts with cosign      jo     ✓    0/1   0         1d gitlab.com
+  data/etl-jobs     Backfill job for March exports          morgan ○    0/1   0         2d gitlab.example.dev
+
+Returned to you (2)
+  PROJECT           TITLE                                   AUTHOR CI  APPR THR CONFL  UPD HOST
+  acme/web          Dark mode for the account pages         alex   ✓    0/1   4 yes    40m gitlab.com
+  platform/billing  Use decimal amounts in invoice totals   alex   ✗    1/2   2         4h gitlab.example.dev
+    ✗ test:py · assert 25 == 30
+
+Your merge requests (4)
+  PROJECT           TITLE                                   AUTHOR CI  APPR THR CONFL  UPD HOST
+  acme/web          Dark mode for the account pages         alex   ✓    0/1   4 yes    40m gitlab.com
+  acme/shop-api     Draft: Move pricing rules to a table    alex   ○      -   0         2h gitlab.com
+  platform/billing  Use decimal amounts in invoice totals   alex   ✗    1/2   2         4h gitlab.example.dev
+    ✗ test:py · assert 25 == 30
+  platform/infra    Rotate the CI runner certificates       alex   ✓    0/1   0         6h gitlab.example.dev
