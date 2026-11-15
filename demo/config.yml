@@ -1,0 +1,11 @@
+# gl-dash config for the demo: two seeded fake GitLab instances served by
+# `go run ./demo/fakegitlab` (see demo/demo.sh). Nothing here is real.
+hosts:
+  - host: gitlab.com
+    api_host: 127.0.0.1:18081
+    api_protocol: http
+    token: demo-token
+  - host: gitlab.example.dev
+    api_host: 127.0.0.1:18082
+    api_protocol: http
+    token: demo-token

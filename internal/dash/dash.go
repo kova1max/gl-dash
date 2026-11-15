@@ -32,7 +32,6 @@ type Row struct {
 	WebURL    string
 	Draft     bool
 	Conflicts bool
-	Created   time.Time
 	Updated   time.Time
 }
 
@@ -126,7 +125,6 @@ func (s *Source) Section(ctx context.Context, f Filter, limit int) ([]Row, error
 			WebURL:    mr.WebURL,
 			Draft:     mr.Draft,
 			Conflicts: mr.HasConflicts,
-			Created:   mr.CreatedAt,
 			Updated:   mr.UpdatedAt,
 		})
 	}

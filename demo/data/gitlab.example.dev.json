@@ -1,0 +1,52 @@
+{
+  "host": "gitlab.example.dev",
+  "token": "demo-token",
+  "user": "alex",
+  "mrs": [
+    {
+      "project_id": 11, "project": "platform/billing", "iid": 512,
+      "title": "Retry failed webhook deliveries", "author": "morgan",
+      "reviewers": [{"username": "alex", "state": "unreviewed"}],
+      "created": "1d", "updated": "50m",
+      "approvals_required": 2, "approved_by": ["casey"], "unresolved_threads": 1,
+      "pipeline": {"id": 4410, "status": "failed", "jobs": [
+        {"id": 88001, "name": "lint", "stage": "lint", "status": "failed", "trace_file": "traces/golangci-lint.log"},
+        {"id": 88002, "name": "test", "stage": "test", "status": "skipped"}
+      ]}
+    },
+    {
+      "project_id": 12, "project": "platform/infra", "iid": 77,
+      "title": "Terraform: split the staging VPC module", "author": "casey",
+      "reviewers": [{"username": "alex", "state": "unreviewed"}],
+      "created": "2d", "updated": "5h",
+      "approvals_required": 1, "approved_by": [], "unresolved_threads": 0,
+      "pipeline": {"id": 4398, "status": "success"}
+    },
+    {
+      "project_id": 13, "project": "data/etl-jobs", "iid": 140,
+      "title": "Backfill job for March exports", "author": "morgan",
+      "reviewers": [{"username": "alex", "state": "unreviewed"}],
+      "created": "6d", "updated": "2d",
+      "approvals_required": 1, "approved_by": [], "unresolved_threads": 0,
+      "pipeline": {"id": 4320, "status": "manual"}
+    },
+    {
+      "project_id": 11, "project": "platform/billing", "iid": 509,
+      "title": "Use decimal amounts in invoice totals", "author": "alex",
+      "reviewers": [{"username": "morgan", "state": "reviewed"}],
+      "created": "2d", "updated": "4h",
+      "approvals_required": 2, "approved_by": ["casey"], "unresolved_threads": 2,
+      "pipeline": {"id": 4401, "status": "failed", "jobs": [
+        {"id": 87950, "name": "test:py", "stage": "test", "status": "failed", "trace_file": "traces/pytest.log"}
+      ]}
+    },
+    {
+      "project_id": 12, "project": "platform/infra", "iid": 75,
+      "title": "Rotate the CI runner certificates", "author": "alex",
+      "reviewers": [{"username": "casey", "state": "unreviewed"}],
+      "created": "1d", "updated": "6h",
+      "approvals_required": 1, "approved_by": [], "unresolved_threads": 0,
+      "pipeline": {"id": 4395, "status": "success"}
+    }
+  ]
+}
